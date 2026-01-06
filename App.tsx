@@ -59,7 +59,7 @@ const Header: React.FC<{ title: string; showBack?: boolean; onBack?: () => void 
             <ArrowLeft size={20} />
         </button>
     )}
-    <h1 className="text-lg font-black text-white tracking-tight">{title}</h1>
+    <h1 className="text-lg font-black text-white tracking-tight truncate flex-1">{title}</h1>
   </header>
 );
 
@@ -303,7 +303,7 @@ const AddGoalView: React.FC<{ onSave: (g: Goal) => void; onCancel: () => void }>
             type="text" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Read 20 Books"
+            placeholder={category === GoalCategory.AVOID ? "e.g., Smoking, Fast Food" : "e.g., Read 20 Books"}
             className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder:text-zinc-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
             required
           />
@@ -332,7 +332,9 @@ const AddGoalView: React.FC<{ onSave: (g: Goal) => void; onCancel: () => void }>
 
         <div className="grid grid-cols-2 gap-4">
              <div>
-                <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-2">Target</label>
+                <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-2">
+                    {category === GoalCategory.AVOID ? "Limit (Max)" : "Target"}
+                </label>
                 <input 
                     type="number" 
                     value={targetCount}
@@ -354,7 +356,10 @@ const AddGoalView: React.FC<{ onSave: (g: Goal) => void; onCancel: () => void }>
         </div>
 
         <div className="bg-zinc-800/50 p-4 rounded-2xl border border-zinc-700 text-xs text-zinc-500 leading-relaxed">
-            <p>Start small, think big. This goal will be tracked on your annual timeline.</p>
+            {category === GoalCategory.AVOID 
+                ? <p className="text-red-400">This is a restriction goal. Every time you log an activity here, it will be counted as a negative point against your total score.</p>
+                : <p>Start small, think big. This goal will be tracked on your annual timeline.</p>
+            }
         </div>
 
         <div className="flex gap-4 pt-6">
@@ -391,6 +396,8 @@ const GoalDetailView: React.FC<{
         type: 'log' | 'goal';
         id?: string;
     }>({ isOpen: false, type: 'log' });
+
+    const isAvoid = goal.category === GoalCategory.AVOID;
 
     const handleAddLog = (e: React.FormEvent) => {
         e.preventDefault();
@@ -464,14 +471,20 @@ const GoalDetailView: React.FC<{
                 <div className="bg-zinc-800 rounded-[2rem] p-6 border border-zinc-700 shadow-md">
                     <div className="flex justify-between items-end mb-4">
                         <div>
-                             <p className="text-5xl font-black text-white">{goal.currentCount}</p>
-                             <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-1">{goal.unit} COMPLETED</p>
+                             <p className={`text-5xl font-black ${isAvoid ? 'text-red-500' : 'text-white'}`}>{goal.currentCount}</p>
+                             <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-1">
+                                 {goal.unit} {isAvoid ? 'VIOLATIONS' : 'COMPLETED'}
+                             </p>
                         </div>
                         {goal.targetCount && (
                              <div className="text-right">
-                                 <p className="text-sm font-medium text-zinc-400 mb-1">Target: <span className="text-white">{goal.targetCount}</span></p>
-                                 <div className="bg-zinc-700 px-3 py-1 rounded-lg inline-block">
-                                     <p className="text-xs text-orange-400 font-bold">{percentage}% Done</p>
+                                 <p className="text-sm font-medium text-zinc-400 mb-1">
+                                    {isAvoid ? 'Limit' : 'Target'}: <span className="text-white">{goal.targetCount}</span>
+                                 </p>
+                                 <div className={`px-3 py-1 rounded-lg inline-block ${isAvoid ? 'bg-red-900/30' : 'bg-zinc-700'}`}>
+                                     <p className={`text-xs font-bold ${isAvoid ? 'text-red-400' : 'text-orange-400'}`}>
+                                        {percentage}% {isAvoid ? 'Used' : 'Done'}
+                                     </p>
                                  </div>
                              </div>
                         )}
@@ -480,7 +493,7 @@ const GoalDetailView: React.FC<{
                         <div className="h-4 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-700/50">
                             <div 
                                 className="h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(249,115,22,0.3)]" 
-                                style={{ width: `${percentage}%`, backgroundColor: '#f97316' }} // orange-500
+                                style={{ width: `${percentage}%`, backgroundColor: isAvoid ? '#ef4444' : '#f97316' }} 
                             ></div>
                         </div>
                     )}
@@ -489,9 +502,9 @@ const GoalDetailView: React.FC<{
 
             {/* Add Log Form */}
             <div className="mb-10">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <div className="bg-orange-500 p-1 rounded-md text-zinc-900"><Plus size={16} /></div> 
-                    Add Progress
+                <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isAvoid ? 'text-red-400' : 'text-white'}`}>
+                    <div className={`p-1 rounded-md text-zinc-900 ${isAvoid ? 'bg-red-500' : 'bg-orange-500'}`}><Plus size={16} /></div> 
+                    {isAvoid ? 'Log Violation' : 'Add Progress'}
                 </h3>
                 <form onSubmit={handleAddLog} className="bg-zinc-800 rounded-[2rem] border border-zinc-700 p-5 shadow-md">
                      <div className="flex gap-4 mb-4">
@@ -521,7 +534,7 @@ const GoalDetailView: React.FC<{
                             type="text" 
                             value={note}
                             onChange={e => setNote(e.target.value)}
-                            placeholder="e.g. Read Chapter 1"
+                            placeholder={isAvoid ? "e.g. Ate candy" : "e.g. Read Chapter 1"}
                             className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-xl text-sm text-white outline-none focus:border-orange-500 placeholder:text-zinc-600"
                          />
                      </div>
@@ -530,7 +543,7 @@ const GoalDetailView: React.FC<{
                          <textarea 
                             value={reflection}
                             onChange={e => setReflection(e.target.value)}
-                            placeholder="What did you learn? How did it feel?"
+                            placeholder="What happened?"
                             rows={2}
                             className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-xl text-sm text-white outline-none focus:border-orange-500 resize-none placeholder:text-zinc-600"
                          />
@@ -558,7 +571,9 @@ const GoalDetailView: React.FC<{
                                 <div className="flex justify-between items-start mb-1">
                                     <p className="text-base text-white font-bold">{log.note}</p>
                                     {log.count > 0 && (
-                                        <span className="text-[10px] font-bold text-zinc-900 bg-orange-500 px-2 py-0.5 rounded ml-2">+{log.count}</span>
+                                        <span className={`text-[10px] font-bold text-zinc-900 px-2 py-0.5 rounded ml-2 ${isAvoid ? 'bg-red-500' : 'bg-orange-500'}`}>
+                                            {isAvoid ? '-' : '+'}{log.count}
+                                        </span>
                                     )}
                                 </div>
                                 {log.reflection && (
@@ -677,7 +692,9 @@ export default function App() {
                                   <p className="text-zinc-300 text-sm font-bold truncate">{log.goalTitle}</p>
                                   <p className="text-zinc-500 text-xs truncate">{log.note}</p>
                               </div>
-                              <span className="text-xs text-zinc-600 font-mono">{new Date(log.date).toLocaleDateString(undefined, {month:'numeric', day:'numeric'})}</span>
+                              <span className={`text-xs font-mono font-bold ${log.category === GoalCategory.AVOID ? 'text-red-500' : 'text-zinc-600'}`}>
+                                {new Date(log.date).toLocaleDateString(undefined, {month:'numeric', day:'numeric'})}
+                              </span>
                           </div>
                         ))
                     }
@@ -697,19 +714,26 @@ export default function App() {
       case 'goals':
         return (
            <div className="pt-16 px-6 pb-28 animate-in fade-in duration-300">
-               <h2 className="text-3xl font-black text-white mb-6">Your Plans</h2>
-               <div className="grid gap-3">
+               {/* Header handles title now */}
+               <div className="grid gap-3 mt-4">
                    {goals.map(g => (
                        <button 
                           key={g.id}
                           onClick={() => setSelectedGoalId(g.id)}
-                          className="w-full bg-zinc-800 p-5 rounded-2xl border border-zinc-700 flex items-center justify-between hover:border-orange-500/50 hover:bg-zinc-700 transition-all text-left group"
+                          className={`w-full bg-zinc-800 p-5 rounded-2xl border border-zinc-700 flex items-center justify-between hover:bg-zinc-700 transition-all text-left group
+                            ${g.category === GoalCategory.AVOID ? 'hover:border-red-500/50' : 'hover:border-orange-500/50'}
+                          `}
                        >
                            <div className="flex items-center gap-4">
                                <div className="w-1.5 h-10 rounded-full group-hover:scale-y-110 transition-transform" style={{ backgroundColor: CATEGORY_COLORS[g.category] }}></div>
                                <div>
                                    <h3 className="font-bold text-white text-lg">{g.title}</h3>
-                                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide mt-1">{g.currentCount} / {g.targetCount || '∞'} {g.unit}</p>
+                                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide mt-1">
+                                     <span className={g.category === GoalCategory.AVOID ? 'text-red-400' : ''}>
+                                        {g.currentCount}
+                                     </span> 
+                                     / {g.targetCount || '∞'} {g.unit}
+                                   </p>
                                </div>
                            </div>
                            <ChevronRight size={20} className="text-zinc-600 group-hover:text-white" />
@@ -735,10 +759,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100 font-sans selection:bg-orange-500/30">
-      {/* Conditionally render Header */}
-      {!selectedGoal && view !== 'add' && view !== 'log_selection' && (
-          <Header title="Yearly Vision" />
-      )}
+      {/* Dynamic Header */}
+      {selectedGoal ? (
+        <Header 
+            title={selectedGoal.title} 
+            showBack={true} 
+            onBack={() => setSelectedGoalId(null)} 
+        />
+      ) : (view !== 'add' && view !== 'log_selection' && (
+          <Header 
+            title={view === 'goals' ? 'Your Plans' : 'Yearly Vision'} 
+            showBack={view === 'goals'}
+            onBack={() => setView('dashboard')}
+          />
+      ))}
 
       <main className="min-h-screen">
         {renderContent()}
