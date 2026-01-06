@@ -8,10 +8,18 @@ interface DashboardChartsProps {
 
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ goals }) => {
   // Calculate aggregate stats
-  const totalLogs = goals.reduce((acc, g) => acc + g.logs.length, 0);
+  // For 'AVOID' category, we treat logs as negative points (deductions)
+  const positiveLogs = goals.filter(g => g.category !== GoalCategory.AVOID).reduce((acc, g) => acc + g.logs.length, 0);
+  const negativeLogs = goals.filter(g => g.category === GoalCategory.AVOID).reduce((acc, g) => acc + g.logs.length, 0);
   
-  // Calculate completion rate only for goals that have a target
-  const goalsWithTarget = goals.filter(g => g.targetCount && g.targetCount > 0);
+  const totalScore = positiveLogs - negativeLogs;
+  
+  // Calculate completion rate only for goals that have a target (excluding Avoid category for completion logic usually, 
+  // but if Avoid has a target (limit), current logic divides current/target. 
+  // Let's keep completion logic simple: Avoid goals usually shouldn't progress towards 100%, 
+  // but for now we exclude them from "Completion" % to avoid skewing positive progress.
+  const goalsWithTarget = goals.filter(g => g.targetCount && g.targetCount > 0 && g.category !== GoalCategory.AVOID);
+  
   const totalProgress = goalsWithTarget.reduce((acc, g) => {
     const p = Math.min((g.currentCount / (g.targetCount || 1)), 1);
     return acc + p;
@@ -40,8 +48,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ goals }) => {
         
         <div className="relative z-10 flex justify-between items-start">
             <div>
-              <p className="text-slate-900/60 font-black text-xs uppercase tracking-widest mb-1">Total Actions</p>
-              <h2 className="text-6xl font-black text-slate-900 tracking-tighter">{totalLogs}</h2>
+              <p className="text-slate-900/60 font-black text-xs uppercase tracking-widest mb-1">Net Score</p>
+              <div className="flex items-baseline gap-2">
+                  <h2 className="text-6xl font-black text-slate-900 tracking-tighter">{totalScore}</h2>
+                  {negativeLogs > 0 && (
+                      <span className="text-red-800 font-bold text-sm bg-red-500/20 px-2 py-1 rounded">- {negativeLogs} penalty</span>
+                  )}
+              </div>
               <div className="mt-4 flex items-center gap-2">
                  <span className="bg-slate-900/10 px-3 py-1 rounded-md text-slate-900 font-bold text-[10px] uppercase tracking-wider border border-slate-900/10 backdrop-blur-sm">
                     {new Date().getFullYear()} Active
@@ -55,7 +68,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ goals }) => {
                 {goalsWithTarget.length > 0 && (
                     <div className="text-slate-900 font-bold">
                         <span className="text-2xl tracking-tight">{displayPercentage}%</span>
-                        <div className="text-[10px] uppercase opacity-60 font-black">Completion</div>
+                        <div className="text-[10px] uppercase opacity-60 font-black">Positive Progress</div>
                     </div>
                 )}
             </div>
@@ -220,6 +233,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({ goals, onGoalClick }) =>
                 {/* Logs */}
                 {sortedLogs.map((log, index) => {
                     const isLeft = index % 2 === 0; // Alternating
+                    const isAvoid = log.category === GoalCategory.AVOID;
                     
                     return (
                         <div 
@@ -231,6 +245,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({ goals, onGoalClick }) =>
                             <div className={`
                                 w-[45%] bg-zinc-800 p-3 rounded-xl border-l-4 shadow-lg relative overflow-hidden transition-transform hover:scale-105 active:scale-95
                                 ${isLeft ? 'mr-auto text-right' : 'ml-auto text-left'}
+                                ${isAvoid ? 'ring-1 ring-red-500/30' : ''}
                             `}
                             style={{ borderLeftColor: CATEGORY_COLORS[log.category] }}
                             >
@@ -239,7 +254,9 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({ goals, onGoalClick }) =>
                                         {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                     </span>
                                     {log.count > 0 && (
-                                        <span className="text-[9px] font-bold text-orange-400">+{log.count}</span>
+                                        <span className={`text-[9px] font-bold ${isAvoid ? 'text-red-500' : 'text-orange-400'}`}>
+                                            {isAvoid ? '-' : '+'}{log.count}
+                                        </span>
                                     )}
                                 </div>
                                 <p className="text-xs font-bold text-zinc-200 line-clamp-2 leading-snug">{log.note || 'Activity'}</p>
@@ -249,7 +266,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({ goals, onGoalClick }) =>
                             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-zinc-900 rounded-full border-2 z-20 flex items-center justify-center shadow-md ring-4 ring-zinc-900"
                                  style={{ borderColor: CATEGORY_COLORS[log.category] }}
                             >
-                                <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isAvoid ? 'bg-red-500' : 'bg-zinc-600'}`}></div>
                             </div>
                             
                             {/* Connector Line */}
