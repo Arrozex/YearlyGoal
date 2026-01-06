@@ -3,7 +3,7 @@ export enum GoalCategory {
   HEALTH = 'Health',
   FINANCE = 'Finance',
   LEARNING = 'Learning',
-  TRAVEL = 'Travel',
+  AVOID = 'Avoid', // Replaced Travel with Forbidden/Avoid
   PERSONAL = 'Personal',
 }
 
@@ -13,7 +13,7 @@ export const CATEGORY_COLORS: Record<GoalCategory, string> = {
   [GoalCategory.HEALTH]: '#34d399', // emerald-400
   [GoalCategory.FINANCE]: '#fbbf24', // amber-400
   [GoalCategory.LEARNING]: '#a78bfa', // violet-400
-  [GoalCategory.TRAVEL]: '#f472b6', // pink-400
+  [GoalCategory.AVOID]: '#ef4444', // red-500 (Danger/Forbidden)
   [GoalCategory.PERSONAL]: '#94a3b8', // slate-400
 };
 
